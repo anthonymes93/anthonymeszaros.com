@@ -60,4 +60,4 @@ jobs:
             -o StrictHostKeyChecking=yes \
             -p "$PORT" \
             "$USER@$HOST" \
-            'pwd; ls -la'
+            'ls -la /home/customer/www; find /home/customer/www -maxdepth 3 -type d -name public_html'
