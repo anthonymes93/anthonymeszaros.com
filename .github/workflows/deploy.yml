@@ -36,7 +36,7 @@ jobs:
           USER: ${{ secrets.SITEGROUND_USER }}
           PORT: ${{ secrets.SITEGROUND_PORT }}
         run: |
-          ssh -i ~/.ssh/id_deploy \
+         ssh -vv -o IdentitiesOnly=yes -i ~/.ssh/id_deploy \
             -p "$PORT" \
             -o BatchMode=yes \
             "$USER@$HOST" \
