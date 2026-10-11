@@ -18,17 +18,36 @@ jobs:
       - name: Configure SSH
         env:
           SSH_KEY: ${{ secrets.SITEGROUND_SSH_KEY }}
+          SSH_PASSPHRASE: ${{ secrets.SITEGROUND_SSH_PASSPHRASE }}
         run: |
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          ssh-keygen -y -P "" -f ~/.ssh/id_deploy > /dev/null
+
+          eval "$(ssh-agent -s)"
+          echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
+          echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
+
+          cat > "$RUNNER_TEMP/ssh-askpass.sh" <<'EOF'
+          #!/bin/sh
+          printf '%s\n' "$SSH_PASSPHRASE"
+          EOF
+          chmod 700 "$RUNNER_TEMP/ssh-askpass.sh"
+
+          SSH_ASKPASS="$RUNNER_TEMP/ssh-askpass.sh" \
+          SSH_ASKPASS_REQUIRE=force \
+          DISPLAY=:0 \
+          ssh-add ~/.ssh/id_deploy < /dev/null
+
+          rm -f "$RUNNER_TEMP/ssh-askpass.sh"
 
       - name: Verify SSH host
         env:
           HOST: ${{ secrets.SITEGROUND_HOST }}
           PORT: ${{ secrets.SITEGROUND_PORT }}
         run: |
+          mkdir -p ~/.ssh
           ssh-keyscan -p "$PORT" -H "$HOST" >> ~/.ssh/known_hosts
 
       - name: Test SiteGround connection
@@ -37,8 +56,8 @@ jobs:
           USER: ${{ secrets.SITEGROUND_USER }}
           PORT: ${{ secrets.SITEGROUND_PORT }}
         run: |
-         ssh -vv -o IdentitiesOnly=yes -o IdentityAgent=none -i ~/.ssh/id_deploy \
+          ssh -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
             -p "$PORT" \
-            -o BatchMode=yes \
             "$USER@$HOST" \
             'pwd; ls -la'
