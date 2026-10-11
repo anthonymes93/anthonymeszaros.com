@@ -61,3 +61,18 @@ jobs:
             -p "$PORT" \
             "$USER@$HOST" \
             'ls -la /home/customer/www; find /home/customer/www -maxdepth 3 -type d -name public_html'
+
+            
+      - name: Deploy website to SiteGround
+        env:
+          HOST: ${{ secrets.SITEGROUND_HOST }}
+          USER: ${{ secrets.SITEGROUND_USER }}
+          PORT: ${{ secrets.SITEGROUND_PORT }}
+        run: |
+          rsync -avz \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.gitignore' \
+            -e "ssh -p $PORT -o BatchMode=yes" \
+            ./ "$USER@$HOST:/home/customer/www/anthonym524.sg-host.com/public_html/"
+
