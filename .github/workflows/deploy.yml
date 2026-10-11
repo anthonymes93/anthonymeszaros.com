@@ -1,0 +1,43 @@
+
+name: Deploy to SiteGround
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout website
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.SITEGROUND_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+      - name: Verify SSH host
+        env:
+          HOST: ${{ secrets.SITEGROUND_HOST }}
+          PORT: ${{ secrets.SITEGROUND_PORT }}
+        run: |
+          ssh-keyscan -p "$PORT" -H "$HOST" >> ~/.ssh/known_hosts
+
+      - name: Test SiteGround connection
+        env:
+          HOST: ${{ secrets.SITEGROUND_HOST }}
+          USER: ${{ secrets.SITEGROUND_USER }}
+          PORT: ${{ secrets.SITEGROUND_PORT }}
+        run: |
+          ssh -i ~/.ssh/id_deploy \
+            -p "$PORT" \
+            -o BatchMode=yes \
+            "$USER@$HOST" \
+            'pwd; ls -la'
